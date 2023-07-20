@@ -233,19 +233,21 @@ Its underlying dependencies are the following owned libraries:
 
 1.  Middlewares
 
-    As it is important to build applications that provide full visibility of the request lifecycles,
+    As it is important to build applications that provide full visibility or control request lifecycles,
     Flask app instances provide a series of middleware-oriented decorators that can be configured
-    to listen requests **before reaching controllers** and **after it has been sent**, which can help
-    in the following cases:
+    to listen requests **before reaching controllers** and **after response has been sent**, which can
+    help in the following cases:
 
     -   Protect private resources
     -   Initialize request session logger references
     -   Redirect requests calling deprecated APIs
+    -   etc...
 
     For example, the following middleware intends to redirect traffic trying to consume deprecated
     APIs and redirecting them to the proper one:
 
         from flask import redirect, request, abort
+
 
         def redirect_outdated_api_calls(
             app: Flask,
@@ -267,15 +269,38 @@ Its underlying dependencies are the following owned libraries:
                     ...
                 }
             """
-            ep = request.endpoint
-            if ep in deprecated_eps:
-                location = redirect.get(ep)
+            @app.before_request
+            def handler():
+                ep = request.endpoint
+                if ep in deprecated_eps:
+                    location = redirect.get(ep)
 
-                if location:
-                    return redirect(location)
-                return abort(code=404)
+                    if location:
+                        return redirect(location)
+                    return abort(code=404)
 
-1.  Testing
+1.  Testing with pytest _([reference](https://flask.palletsprojects.com/en/2.2.x/testing/))_
+
+    -   Fixture
+
+            import pytest
+            from app import app
+
+            @pytest.fixture
+            def client():
+                return app.test_client()
+
+    -   Test case
+
+            import pytest
+            from fixtures import client
+
+            def test_get_request(client):
+                response = client.get("/")
+
+                assert response.status_code == 200
+                assert response.is_json
+                assert response.get_json() == dict(msg="success")
 
 ## Extensions
 
