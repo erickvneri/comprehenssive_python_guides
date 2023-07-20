@@ -279,7 +279,7 @@ Its underlying dependencies are the following owned libraries:
                         return redirect(location)
                     return abort(code=404)
 
-1.  Testing with pytest _([reference](https://flask.palletsprojects.com/en/2.2.x/testing/))_
+1.  Testing _([reference](https://flask.palletsprojects.com/en/2.2.x/testing/))_
 
     -   Fixture
 
