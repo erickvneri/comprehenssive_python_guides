@@ -37,7 +37,7 @@ library, its benefits and optimize it over time.
         # being executed.
         connection.autocommit = True
 
-1.  Cursor / Pool
+1.  Cursor / Pool _([reference](https://www.psycopg.org/docs/cursor.html#cursor.executemany))_
 
     A connection cursor, also known as Pool is useful to save time between execution of several
     queries by reusing the connection session.
