@@ -158,3 +158,49 @@ library, its benefits and optimize it over time.
 
                 pool.execute(sql_query, medication_data)
                 return pool.fetchall()
+
+1.  Testing
+
+        import pytest
+        from connection import pool
+
+        seed_up_sql = """
+            CREATE EXTENSION "pgcrypto";
+            CREATE TABLE users (
+                uuid UUID,
+                username VARCHAR,
+                email VARCHAR,
+                created_at TIMESTAMP,
+                updated_at TIMESTAMP,
+                deleted_at TIMESTAMP
+            );
+            INSERT INTO users (uuid, username, email, created_at, updated_at)
+            VALUES
+            (gen_random_uuid(), '...', '...', NOW(), NOW()),
+            (gen_random_uuid(), '...', '...', NOW(), NOW()),
+            (gen_random_uuid(), '...', '...', NOW(), NOW()),
+            (gen_random_uuid(), '...', '...', NOW(), NOW());
+        """
+        seed_down_sql = """
+            DROP EXTENSION "pgcrypto";
+            DROP TABLE users;
+        """
+
+
+        @pytest.fixture
+        def seed():
+            pool.execute(seed_up_sql)
+            yield
+            pool.execute(seed_down_sql)
+
+
+        def test_counting_users(seed):
+            sql = """
+                SELECT COUNT(*) FROM users;
+            """
+            pool.execute(sql)
+            result = pool.fetchall()
+
+            assert result
+            assert type(result) is list
+            assert result[0][0] == 4
