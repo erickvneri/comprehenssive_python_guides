@@ -35,4 +35,120 @@ perform read-write operations.
             updated_at = Column(DateTime, default=datetime.now)
             deleted_at = Column(DateTime, default=None)
 
-1.  Read-Write SQL-ish Queries
+1.  Database management capabilities
+
+    The `Model.metadata` interface provides a series of DB / App admin functionalities that
+    can help to stablish the integration behavior based on a specific environment or
+    to simplify our development processes.
+
+    -   Describe tables `tables`
+
+    -   Create tables `create_all`
+
+    -   Drop tables `clear`
+
+    -   Reflect tables `reflect`
+
+1.  Queries
+
+    -   ORM's Syntax
+
+        -   Writing
+
+                def insert_user(conn: Session, user_data: dict) -> tuple[User]:
+                    result = User(**user_data)
+                    conn.add(result)
+                    conn.commit()
+                    return result
+
+        -   Reading
+
+                def get_users(conn: Session) -> list[User]:
+                    result = conn.query(User).all()
+                    return result
+
+    -   Query Building capabilities
+
+        -   Writing
+
+                def insert_user(conn: Session, user_data: dict) -> tuple[User]:
+                    query = (
+                        insert(User)
+                        .values(**user_data)
+                        .returning(User)
+                    )
+                    result = conn.execute(query)
+                    conn.commit()
+                    return result.one()
+
+        -   Reading
+
+                def get_users(conn: Session) -> list[User]:
+                    query = select(User)
+                    result = conn.execute(query)
+                    return result
+
+1.  Non-indexed tables
+
+    With the help of `Model.metadata.reflect` we can collect the necessary metadata to
+    still use ORM syntax across non-declared models, e.g.
+
+    1.  First, we run the following into our DB Client:
+
+            # Executed directly at the PostgreSQL engine:
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+            CREATE TABLE IF NOT EXISTS profiles (
+                uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+                user_uuid UUID NOT NULL
+            );
+
+            ALTER TABLE profiles
+            ADD CONSTRAINT fk_users_profiles
+            FOREIGN KEY (user_uuid)
+            REFERENCES users (uuid);
+
+            INSERT INTO profiles (user_uuid)
+            SELECT uuid FROM users;
+
+    2.  Then we read `profiles` via Python:
+
+        -   ORM Syntax
+
+                def get_user_profile(conn: Session, user_uuid: UUID):
+                    profiles = Model.metadata.tables["profiles"]
+                    result = conn.query(profiles).where(User.uuid == user_uuid).all()
+                    return result
+
+        -   Query Builder Syntax
+
+                def get_user_profile(conn: Session, user_uuid: UUID):
+                    profiles = Model.metadata.tables["profiles"]
+                    query = select(profiles).where(User.uuid == user_uuid)
+                    result = conn.execute(query)
+                    return result.fetchall()
+
+1.  JOIN clause
+
+    Following the schema generated so far, we can use JOIN statements as follows:
+
+    -   ORM Syntax
+
+            def get_user_profile(conn: Session, user_uuid: UUID):
+                profiles = Model.metadata.tables["profiles"]
+                result = conn.query(User, profiles).join(User).all()
+                return result
+
+    -   Query Builder Syntax
+
+            from sqlalchemy.orm import aliased
+
+            def get_user_profile(conn: Session, user_uuid: UUID):
+                profiles = Model.metadata.tables["profiles"]
+                user_alias = aliased(User)
+                profile_alias = aliased(profiles)
+                query = (
+                    select(user_alias, profile_alias).join(user_alias).where(User.uuid == user_uuid)
+                )
+                result = conn.execute(query)
+                return result.fetchall()
