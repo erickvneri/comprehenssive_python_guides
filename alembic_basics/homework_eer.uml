@@ -1,0 +1,96 @@
+@startuml
+    enum user_type {
+        patient
+        doctor
+    }
+
+    enum dose_unit {
+        mg
+        g
+        mcg
+        IU
+        mL
+        L
+        tsp
+        tbsp
+        drops
+        pills
+        capsules
+        syringe
+        puffs
+        units
+        mcg/kg
+        mg/kg
+        g/kg
+    }
+
+    entity users {
+        *uuid: uuid
+        *username: varchar(127)
+        *email: varchar(127)
+        *password: varchar(127)
+        *user_type: users_type
+        *created_at: timestamp (default: NOW)
+        *updated_at: timestamp (default: NOW)
+        *deleted_at: timestamp (default: NULL)
+    }
+
+    entity medications {
+        *uuid: uuid
+        *medication: varchar(127)
+        *created_at: timestamp (default: NOW)
+        *updated_at: timestamp (default: NOW)
+        *deleted_at: timestamp (default: NULL)
+    }
+
+    entity medication_doses {
+        *uuid: uuid
+        *medication: uuid (fk medications)
+        *dose: integer
+        *dose_unit: medication_dose_unit
+        *created_at: timestamp (default: NOW)
+        *updated_at: timestamp (default: NOW)
+        *deleted_at: timestamp (default: NULL)
+    }
+
+    entity prescriptions {
+        *uuid: uuid
+        *description: text
+        *appointment_uuid: uuid
+        *created_at: timestamp (default: NOW)
+        *updated_at: timestamp (default: NOW)
+        *deleted_at: timestamp (default: NULL)
+    }
+
+    entity prescription_medication_doses {
+        *uuid: uuid
+        *prescription: uuid (fk prescriptions)
+        *dose: uuid (fk medication_doses)
+    }
+
+    entity appointments {
+        *uuid: uuid
+        *description: text
+        *due_to: timestamp
+        *patient_arrived: bool
+        *doctor_arrived: bool
+        *created_at: timestamp (default: NOW)
+        *updated_at: timestamp (default: NOW)
+        *deleted_at: timestamp (default: NULL)
+    }
+
+    entity users_appointments {
+        *uuid: uuid
+        *appointment: uuid
+        *patient: uuid (fk users)
+        *doctor: uuid (fk users)
+    }
+
+    ' Relationship '
+    users }|--|{ users_appointments
+    appointments }|--|{ users_appointments
+    prescriptions ||--|| appointments
+    prescriptions }|--|{ prescription_medication_doses
+    medication_doses }|--|{ prescription_medication_doses
+    medication_doses ||--|{ medications
+@enduml
