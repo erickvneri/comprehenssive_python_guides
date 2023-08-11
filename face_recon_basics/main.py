@@ -32,7 +32,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-multiscale_params = {"default": {}}
 opencv_face_detect_config = dict(
     default=dict(scaleFactor=1.25, minNeighbors=6, minSize=(30, 30)),
     refined_v1=dict(scaleFactor=1.6, minNeighbors=6, minSize=(30, 30)),
@@ -40,7 +39,9 @@ opencv_face_detect_config = dict(
 )
 
 
-def find_and_crop_faces(filename: str) -> list[str]:  # generated image file name
+def find_and_crop_faces(
+    filename: str, profile: str
+) -> list[str]:  # generated image file name
     faces_found: list[str] = []
 
     # read image file
@@ -54,7 +55,7 @@ def find_and_crop_faces(filename: str) -> list[str]:  # generated image file nam
 
     # detect faces
     faces = face_cascade.detectMultiScale(
-        gray_scaled, **opencv_face_detect_config["default"]
+        gray_scaled, **opencv_face_detect_config[profile]
     )
     logging.info(f"faces detected: {len(faces)}")
 
@@ -93,6 +94,12 @@ def main():
 
     crop_service = options.add_parser("crop")
     crop_service.add_argument("--file", "-f", type=str, required=True)
+    crop_service.add_argument(
+        "--profile",
+        "-p",
+        choices=["default", "refined_v1", "refined_v2"],
+        default="default",
+    )
 
     compare_service = options.add_parser("compare")
     compare_service.add_argument("--compare-base", "-cb", type=str, required=True)
@@ -103,7 +110,7 @@ def main():
     # Handle CLI requests
     if args.subcommand == "crop":
         filename = args.file
-        cropped_image_files: list[str] = find_and_crop_faces(filename)
+        cropped_image_files: list[str] = find_and_crop_faces(filename, args.profile)
     elif args.subcommand == "compare":
         result = compare_faces(args.compare_base, args.compare_target)
         logging.info(f"comparission result: {result}")
