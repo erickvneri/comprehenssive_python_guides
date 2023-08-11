@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # MIT License
 #
-# Copyright (c) 2022 erickvneri
+# Copyright (c) 2023 erickvneri
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,13 +20,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-import sys
 import cv2
 import logging
 import numpy as np
 import face_recognition
 from datetime import datetime
 from argparse import ArgumentParser
+
+# local services
+from services import detect_faces, recognition
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -90,30 +92,41 @@ def compare_faces(*filenames) -> float:
 def main():
     # Configure CLI
     cli = ArgumentParser()
-    options = cli.add_subparsers(title="options", dest="subcommand")
+    services = cli.add_subparsers(title="services", dest="subcommand")
 
-    crop_service = options.add_parser("crop")
-    crop_service.add_argument("--file", "-f", type=str, required=True)
-    crop_service.add_argument(
-        "--profile",
-        "-p",
-        choices=["default", "refined_v1", "refined_v2"],
+    # Face Recognition Service
+    compare_service = services.add_parser("recognition")
+    compare_service.add_argument("--base-file", "-b", type=str, required=True)
+    compare_service.add_argument("--target-file", "-t", type=str, required=True)
+    # Smile Detection Service
+    smile_detection_service = services.add_parser("smile")
+    smile_detection_service.add_argument("--file", "-f", type=str, required=True)
+    smile_detection_service.add_argument("--output", "-o", type=str)
+    smile_detection_service.add_argument("--cropped", action="store_true")
+    # Face Detection Service
+    face_detection_service = services.add_parser("face")
+    face_detection_service.add_argument("--file", "-f", type=str, required=True)
+    face_detection_service.add_argument("--output", "-o", type=str)
+    face_detection_service.add_argument(
+        "--classifier-profile",
+        "--cp",
+        type=str,
+        choices=["default", "v1", "v2"],
         default="default",
     )
-
-    compare_service = options.add_parser("compare")
-    compare_service.add_argument("--compare-base", "-cb", type=str, required=True)
-    compare_service.add_argument("--compare-target", "-ct", type=str, required=True)
 
     args = cli.parse_args()
 
     # Handle CLI requests
-    if args.subcommand == "crop":
-        filename = args.file
-        cropped_image_files: list[str] = find_and_crop_faces(filename, args.profile)
-    elif args.subcommand == "compare":
-        result = compare_faces(args.compare_base, args.compare_target)
+    if args.subcommand == "recognition":
+        result = recognition(args.base_file, args.target_file)
         logging.info(f"comparission result: {result}")
+    elif args.subcommand == "face":
+        result = detect_faces(
+            filename=args.file,
+            profile=args.classifier_profile,
+            output_filename=args.output,
+        )
 
 
 if __name__ == "__main__":
